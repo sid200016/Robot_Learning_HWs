@@ -81,11 +81,34 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             observation = obs[None]
 
         # TODO return the action that the policy prescribes
-        raise NotImplementedError
+        return self.forward(ptu.from_numpy(observation))
 
     # update/train this policy
     def update(self, observations, actions, **kwargs):
-        raise NotImplementedError
+        obs_t = ptu.from_numpy(observations)
+
+        if self.discrete:
+            # actions may come in as shape (B,), (B,1), or one-hot (B, A)
+            if actions.ndim == 2 and actions.shape[1] > 1:
+                act_t = torch.from_numpy(actions).to(ptu.device)
+                act_t = torch.argmax(act_t, dim=1).long()
+            else:
+                act_t = torch.from_numpy(actions).to(ptu.device).long().view(-1)
+
+            logits = self.logits_na(obs_t)
+            loss = F.cross_entropy(logits, act_t)
+        else:
+            act_t = ptu.from_numpy(actions)
+            pred_mean = self.mean_net(obs_t)
+            loss = F.mse_loss(pred_mean, act_t)
+
+        self.optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        self.optimizer.step()
+
+        return {
+            'Training Loss': ptu.to_numpy(loss),
+        }
 
     # This function defines the forward pass of the network.
     # You can return anything you want, but you should be able to differentiate
@@ -93,7 +116,17 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # return more flexible objects, such as a
     # `torch.distributions.Distribution` object. It's up to you!
     def forward(self, observation: torch.FloatTensor) -> Any:
-        raise NotImplementedError
+        if self.discrete:
+            logits = self.logits_na(observation)
+            dist = distributions.Categorical(logits=logits)
+            action = dist.sample()
+            return ptu.to_numpy(action)
+        else:
+            mean = self.mean_net(observation)
+            std = torch.exp(self.logstd)
+            dist = distributions.Normal(mean, std)
+            action = dist.sample()
+            return ptu.to_numpy(action)
 
 
 #####################################################
@@ -108,10 +141,4 @@ class MLPPolicySL(MLPPolicy):
             self, observations, actions,
             adv_n=None, acs_labels_na=None, qvals=None
     ):
-        # TODO: update the policy and return the loss
-        loss = TODO
-
-        return {
-            # You can add extra logging information here, but keep this line
-            'Training Loss': ptu.to_numpy(loss),
-        }
+        return super().update(observations, actions)
