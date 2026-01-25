@@ -118,15 +118,17 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     def forward(self, observation: torch.FloatTensor) -> Any:
         if self.discrete:
             logits = self.logits_na(observation)
-            dist = distributions.Categorical(logits=logits)
-            action = dist.sample()
+            if self.training:
+                dist = distributions.Categorical(logits=logits)
+                action = dist.sample()
+            else:
+                action = torch.argmax(logits, dim=-1)
+
             return ptu.to_numpy(action)
+            
         else:
-            mean = self.mean_net(observation)
-            std = torch.exp(self.logstd)
-            dist = distributions.Normal(mean, std)
-            action = dist.sample()
-            return ptu.to_numpy(action)
+            mean  = self.mean_net(observation)
+            return ptu.to_numpy(mean)  # return the mean as the action
 
 
 #####################################################

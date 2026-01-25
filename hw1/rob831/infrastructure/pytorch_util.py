@@ -47,16 +47,17 @@ def build_mlp(
 
     # TODO: return a MLP. This should be an instance of nn.Module
     # Note: nn.Sequential is an instance of nn.Module.
-    layers = nn.Sequential()
-    for i in range(n_layers):
-        if i == 0:
-            layers.add_module(f'layer_{i}', nn.Linear(input_size, size))
-        else:
-            layers.add_module(f'layer_{i}', nn.Linear(size, size))
-        layers.add_module(f'activation_{i}', activation)
-    layers.add_module('output_layer', nn.Linear(size, output_size))
-    layers.add_module('output_activation', output_activation)
-    return layers
+    layers = []
+    in_size = input_size
+    for _ in range(n_layers):
+        layers.append(nn.Linear(in_size, size))
+        layers.append(type(activation)())
+        in_size = size
+
+    layers.append(nn.Linear(in_size, output_size))
+    layers.append(output_activation)
+
+    return nn.Sequential(*layers)
 
 
 device = None
