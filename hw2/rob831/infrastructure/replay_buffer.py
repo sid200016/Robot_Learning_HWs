@@ -13,6 +13,7 @@ class ReplayBuffer(object):
         self.unconcatenated_rews = None
         self.next_obs = None
         self.terminals = None
+        
 
     def add_rollouts(self, paths, noised=False):
 
@@ -65,8 +66,24 @@ class ReplayBuffer(object):
     ########################################
 
     def sample_random_data(self, batch_size):
-        # TODO: get this from hw1
-        raise NotImplementedError
+        assert (
+                self.obs.shape[0]
+                == self.acs.shape[0]
+                == self.next_obs.shape[0]
+                == self.terminals.shape[0]
+        )
+
+        idx = np.random.permutation(self.obs.shape[0])[:batch_size]
+
+
+        return (
+            self.obs[idx],
+            self.acs[idx],
+            self.concatenated_rews[idx],
+            self.next_obs[idx],
+            self.terminals[idx],
+        )
+
 
     def sample_recent_data(self, batch_size=1, concat_rew=True):
 
