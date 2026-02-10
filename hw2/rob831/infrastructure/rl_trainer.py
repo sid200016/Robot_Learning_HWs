@@ -145,7 +145,10 @@ class RL_Trainer(object):
             if self.log_video or self.log_metrics:
                 # perform logging
                 print('\nBeginning logging procedure...')
+                eval_policy.training = False
+
                 self.perform_logging(itr, paths, eval_policy, train_video_paths, train_logs)
+                eval_policy.training = True
 
                 if self.params['save_params']:
                     self.agent.save('{}/agent_itr_{}.pt'.format(self.params['logdir'], itr))
@@ -156,10 +159,10 @@ class RL_Trainer(object):
     def collect_training_trajectories(self, itr, load_initial_expertdata, collect_policy, batch_size):
         # TODO: get this from hw1
         print("\nCollecting data to be used for training...")
-        if itr == 0:
-            with open(load_initial_expertdata, 'rb') as f:
-                loaded_paths = pickle.load(f)
-            return loaded_paths, 0, None
+        # if itr == 0:
+        #     with open(load_initial_expertdata, 'rb') as f:
+        #         loaded_paths = pickle.load(f)
+        #     return loaded_paths, 0, None
         paths, envsteps_this_batch = utils.sample_trajectories( self.env, collect_policy, batch_size, self.params['ep_len'] )
 
         # collect more rollouts with the same policy, to be saved as videos in tensorboard
@@ -167,8 +170,9 @@ class RL_Trainer(object):
         train_video_paths = '../videos'
         if self.log_video:
             print('\nCollecting train rollouts to be used for saving videos...')
-            ## TODO look in utils and implement sample_n_trajectories
-            train_video_paths = utils.sample_n_trajectories(self.env, collect_policy, MAX_NVIDEO, self.MAX_VIDEO_LEN, True)
+            train_video_paths = utils.sample_n_trajectories(
+                self.env, collect_policy, MAX_NVIDEO, MAX_VIDEO_LEN, True
+            )
 
         return paths, envsteps_this_batch, train_video_paths
 
