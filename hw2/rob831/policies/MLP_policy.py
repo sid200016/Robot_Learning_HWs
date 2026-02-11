@@ -1,6 +1,6 @@
 import abc
 import itertools
-from torch import nn
+from torch import dist, nn
 from torch.nn import functional as F
 from torch import optim
 
@@ -93,13 +93,13 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
         dist = self.forward(obs_t)
 
-        if self.training:
-            act_t = dist.sample()          
-        else:
-          
-            act_t = dist.mean if hasattr(dist, "mean") else torch.argmax(dist.logits, dim=-1)
+
+        act_t = dist.sample()
 
         return ptu.to_numpy(act_t)
+
+
+
 
     # update/train this policy
     def update(self, observations, actions, **kwargs):
