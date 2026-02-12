@@ -201,10 +201,12 @@ class RL_Trainer(object):
         last_log = all_logs[-1]
 
         #######################
+        eval_policy.training = False
 
         # collect eval trajectories, for logging
         print("\nCollecting data for eval...")
         eval_paths, eval_envsteps_this_batch = utils.sample_trajectories(self.env, eval_policy, self.params['eval_batch_size'], self.params['ep_len'])
+        eval_policy.training = True
 
         # save eval rollouts as videos in tensorboard event file
         if self.log_video and train_video_paths != None:
